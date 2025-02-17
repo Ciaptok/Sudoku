@@ -1,3 +1,6 @@
+### Igor Studziński
+
+
 # Gra Sudoku
 
 Pythonowa implementacja klasycznej gry Sudoku z graficznym interfejsem użytkownika opartym na Pygame.
