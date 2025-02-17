@@ -1,8 +1,9 @@
 import pygame as py
 import small_square
 
+
 class Grid:
-    def __init__(self, rows, cols, width, height,hearts):
+    def __init__(self, rows, cols, width, height, hearts):
         self.rows = rows
         self.cols = cols
         self.width = width
@@ -16,6 +17,7 @@ class Grid:
         self.running = True
         self._init_squares()
         self.hearts = hearts
+        self.game_ended = False
 
     def _init_squares(self):
         for i in range(self.rows):
@@ -48,11 +50,13 @@ class Grid:
             if value:
                 for i in range(self.rows):
                     for j in range(self.cols):
-                        if self.squares[i][j].value==value:
+                        if self.squares[i][j].value == value:
                             self.squares[i][j].selected = True
 
-
     def draw(self, screen):
+        if self.game_ended:
+            return
+
         screen_width = self.width + 40
         screen_height = self.height + 40
         surface = py.Surface((screen_width, screen_height))
@@ -68,23 +72,20 @@ class Grid:
                 if square.draw():
                     self.selected_row = i
                     self.selected_col = j
-                    value_selected =  self.squares[i][j].value
+                    value_selected = self.squares[i][j].value
                     self.highlight_row_col(i, j, value_selected)
-
 
         for i in range(10):
             thickness = 6 if i % 3 == 0 else 1
             py.draw.line(surface, (0, 0, 0),
-                        (i * self.width // 9 + 20, 20),
-                        (i * self.width // 9 + 20, self.height + 20), thickness)
+                         (i * self.width // 9 + 20, 20),
+                         (i * self.width // 9 + 20, self.height + 20), thickness)
             py.draw.line(surface, (0, 0, 0),
-                        (20, i * self.height // 9 + 20),
-                        (self.width + 20, i * self.height // 9 + 20), thickness)
+                         (20, i * self.height // 9 + 20),
+                         (self.width + 20, i * self.height // 9 + 20), thickness)
 
-        # Center the surface on the screen
         screen.blit(surface, ((screen.get_width() - screen_width) // 2,
-                            (screen.get_height() - screen_height) // 2))
-
+                              (screen.get_height() - screen_height) // 2))
 
     def grid_return(self):
         return self.board
@@ -97,26 +98,31 @@ class Grid:
                 self.squares[i][j].selected = False
         self.selected_row = None
         self.selected_col = None
+        self.game_ended = False
         self.draw(py.display.get_surface())
         py.display.update()
 
     def place_number(self, number):
+        if self.game_ended:
+            return False
+
         if self.selected_row is not None and self.selected_col is not None:
             if self.algorithm.is_valid(self.selected_row, self.selected_col, number):
                 self.squares[self.selected_row][self.selected_col].value = number
                 self.board[self.selected_row][self.selected_col] = number
                 if self.is_grid_complete():
-                    print("Koniec gry!")
-                    self.show_end_screen()
+                    self.show_end_screen(True)
                 return True
             else:
                 if self.squares[self.selected_row][self.selected_col].value:
                     print("Nie można zmienić tej komórki!")
                 else:
-                    self.hearts.remove_heart()
+                    if not self.hearts.remove_heart():
+                        self.show_end_screen(False)
                     print("Niepoprawny ruch!")
         else:
             print("Nie wybrano komórki!")
+        return False
 
     def return_selected(self):
         if self.selected_row is not None and self.selected_col is not None:
@@ -132,18 +138,57 @@ class Grid:
                 return False
         return True
 
-    def show_end_screen(self):
+    def show_end_screen(self, won):
+        self.game_ended = True
         screen = py.display.get_surface()
-        screen.fill((0, 0, 0))  # Czarny ekran
+        screen.fill((0, 0, 0))
+
         font = py.font.Font(None, 74)
-        text = font.render("KONIEC GRY!", True, (255, 255, 255))
-        screen.blit(text, (
-        screen.get_width() // 2 - text.get_width() // 2, screen.get_height() // 2 - text.get_height() // 2))
+
+        if won:
+            message = "GRATULACJE!"
+            submessage = "Rozwiązałeś Sudoku!"
+            color = (255, 215, 0)
+        else:
+            message = "KONIEC GRY!"
+            submessage = "Skończyły się życia!"
+            color = (255, 0, 0)
+
+        text = font.render(message, True, color)
+        text_rect = text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 3))
+        screen.blit(text, text_rect)
+
+        small_font = py.font.Font(None, 36)
+        subtext = small_font.render(submessage, True, (255, 255, 255))
+        subtext_rect = subtext.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
+        screen.blit(subtext, subtext_rect)
+
+        button_font = py.font.Font(None, 48)
+        button_text = button_font.render("Naciśnij SPACJĘ aby wrócić do menu", True, (255, 255, 255))
+        button_rect = button_text.get_rect(center=(screen.get_width() // 2, screen.get_height() * 2 // 3))
+        screen.blit(button_text, button_rect)
+
         py.display.flip()
-        self.running = False
 
-    def check_ruuning(self):
-        return self.running
 
-    def set_check_ruuning(self):
-        self.running = True
+        waiting = True
+        while waiting:
+            for event in py.event.get():
+                if event.type == py.QUIT:
+                    py.quit()
+                    return
+                if event.type == py.KEYDOWN:
+                    if event.key == py.K_SPACE:
+                        waiting = False
+                        self.reset_game()
+                        import main
+                        main.game_state = "start"
+                        return
+
+    def reset_game(self):
+        self.game_ended = False
+        self.hearts.reset()
+        self.refresh()
+
+    def check_running(self):
+        return not self.game_ended

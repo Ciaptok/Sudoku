@@ -6,7 +6,6 @@ class Hearts:
         self.screen = screen
         self.hearts = [1] * self.numbers
 
-
         self.full_heart = py.transform.scale(py.image.load('heart/fill.png').convert_alpha(), (50, 50))
         self.empty_heart = py.transform.scale(py.image.load('heart/nofill.png').convert_alpha(), (50, 50))
 
@@ -21,7 +20,10 @@ class Hearts:
 
     def remove_heart(self):
         if sum(self.hearts) == 1:
-            print('Game over')
+            for i in range(len(self.hearts)):
+                if self.hearts[i] == 1:
+                    self.hearts[i] = 0
+                    break
             return False
         for i in range(len(self.hearts)):
             if self.hearts[i] == 1:
@@ -29,6 +31,8 @@ class Hearts:
                 break
         return True
 
-
     def reset(self):
         self.hearts = [1] * self.numbers
+
+    def check_hearts(self):
+        return sum(self.hearts) > 0

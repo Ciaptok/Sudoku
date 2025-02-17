@@ -6,6 +6,7 @@ class Algoritm:
         self.grid = grid
         self.rows = len(grid)
         self.cols = len(grid[0])
+        self.solve =  None
 
     def print_board(self):
         for row in self.grid:
